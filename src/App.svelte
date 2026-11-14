@@ -16,6 +16,7 @@
   import { ladeAbwesende, setzeAbwesend } from './lib/anwesenheit'
   import { seriell } from './lib/seriell'
   import { ladeFormsConfig, erzeugeGastlink, type FormsConfig } from './lib/gastlink-erzeugen'
+  import { ladeHinweisConfig, semesterStart, ladeSemester, ladeQuittungen, quittieren, berechne, type HinweisConfig, type Hinweis } from './lib/hinweise'
 
   let konto = $state<AccountInfo | null>(null)
   let bereit = $state(false)
@@ -30,6 +31,43 @@
   let speichert = $state(false)
   let wartend = $state(0)
   let formsConfig = $state<FormsConfig | null>(null)
+
+  // Hinweise bei gehäuften negativen Einträgen
+  let hinweisConfig: HinweisConfig | null = null
+  let semesterDaten = new Map<string, GespeicherteBeobachtung[]>()
+  let quittungen: Awaited<ReturnType<typeof ladeQuittungen>> = []
+  let hinweise = $state<Hinweis[]>([])
+  let hinweiseOffen = $state(false)
+  const hinweisStems = $derived(new Set(hinweise.map((h) => h.stem)))
+
+  function hinweiseNeu() {
+    if (!hinweisConfig || !config) { hinweise = []; return }
+    semesterDaten.set(heute(), tagesListe)
+    hinweise = berechne(hinweisConfig, config.kategorien, semesterDaten.values(), quittungen, semesterStart(hinweisConfig))
+  }
+
+  async function ladeHinweise() {
+    const k = klasse
+    hinweise = []
+    if (!hinweisConfig) hinweisConfig = await ladeHinweisConfig()
+    if (!hinweisConfig) return
+    try {
+      const [d, q] = await Promise.all([ladeSemester(k, semesterStart(hinweisConfig)), ladeQuittungen(k)])
+      if (klasse.id !== k.id) return
+      semesterDaten = d
+      quittungen = q
+      hinweiseNeu()
+    } catch (e) { fehler = String(e) }
+  }
+
+  async function hinweisQuittieren(h: Hinweis) {
+    if (!hinweisConfig) return
+    try {
+      quittungen = await seriell(() => quittieren(klasse, h, semesterStart(hinweisConfig!)))
+      hinweiseNeu()
+      if (!hinweise.length) hinweiseOffen = false
+    } catch (e) { fehler = String(e) }
+  }
   let gastlink = $state('')
   let gastTest = $state('')   // Gastmodus (Schulkonto): vorerst nur Verbindungstest
   let modus = $state<'beobachten' | 'ruecklauf' | 'zufall' | 'gruppen' | 'anwesenheit'>('beobachten')
@@ -88,6 +126,7 @@
   async function ladeHeute() {
     try {
       tagesListe = (await ladeTag(klasse)).reverse()
+      hinweiseNeu()
     } catch (e) {
       fehler = String(e)
     }
@@ -116,6 +155,7 @@
       }
     }
     await ladeHeute()
+    ladeHinweise()
   }
 
   function toggle(stem: string) {
@@ -282,12 +322,30 @@
     {#if warnung}<p class="warnung">{warnung}</p>{/if}
     {#if laedt}<p class="info">Lade Klasse {klasse.id} …</p>{/if}
 
+    {#if modus === 'beobachten' && hinweise.length}
+      <button class="hinweis-balken" onclick={() => (hinweiseOffen = !hinweiseOffen)}>
+        ⚠ {hinweise.length} {hinweise.length === 1 ? 'Hinweis' : 'Hinweise'} {hinweiseOffen ? '▴' : '▾'}
+      </button>
+      {#if hinweiseOffen}
+        <ul class="hinweis-liste">
+          {#each hinweise as h (h.stem + h.kat)}
+            <li>
+              <span><strong>{nameVon(h.stem)}</strong> · Stufe {h.stufeNr}/{h.stufen} ({h.anzahl} Einträge)<br />
+                <span class="kat">{h.katText}</span></span>
+              <button class="klein" onclick={() => hinweisQuittieren(h)}>Quittieren</button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    {/if}
+
     {#if modus !== 'ruecklauf'}
     <div class="raster">
       {#each sus as s (s.stem)}
         <button class="kachel" class:gewaehlt={modus === 'beobachten' && auswahl.has(s.stem)}
           class:abwesend={modus !== 'beobachten' && abwesend.has(s.stem)}
           class:abwesend-leicht={modus === 'beobachten' && abwesend.has(s.stem)}
+          class:mit-hinweis={modus === 'beobachten' && hinweisStems.has(s.stem)}
           onclick={() => (modus === 'beobachten' ? toggle(s.stem) : toggleAbwesend(s.stem))}>
           {s.anzeige}
         </button>
