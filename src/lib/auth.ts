@@ -11,8 +11,7 @@ const redirectUri = new URL(import.meta.env.BASE_URL, window.location.origin).hr
 const msal = new PublicClientApplication({
   auth: {
     clientId: CONFIG.clientId,
-    // Mehrinstanzenfähig: eigenes Konto (Hopfriedli) und Schulkonten anderer Organisationen
-    authority: 'https://login.microsoftonline.com/organizations',
+    authority: `https://login.microsoftonline.com/${CONFIG.tenantId}`,
     redirectUri,
   },
   // localStorage: Login bleibt auf dem Handy erhalten
