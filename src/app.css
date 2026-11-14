@@ -43,7 +43,7 @@ button:disabled { opacity: .5; }
 .heute li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--rand); }
 .heute .zeit { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 3em; }
 .heute .text { flex: 1; }
-.heute .kat { font-size: .8rem; color: var(--muted); border: 1px solid var(--rand); border-radius: 4px; padding: 0 4px; }
+.heute .kat { font-size: .8rem; color: var(--muted); }
 .heute .namen { font-size: .9rem; }
 .heute .weg { padding: 4px 10px; color: var(--muted); }
 .heute .weg.bestaetigen { color: #c0392b; border-color: #c0392b; }
@@ -65,3 +65,5 @@ main.mit-leiste .toast { bottom: 250px; }
 .dialog-knoepfe { display: flex; justify-content: flex-end; gap: 8px; }
 .hinweis { width: 100%; margin-bottom: 10px; background: #fff4d6; color: #7a5a00; border-color: #e6c766; }
 .warnung { color: #7a5a00; font-size: .85rem; }
+.chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.chips button { min-height: 52px; font-size: 1.05rem; }

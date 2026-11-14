@@ -31,6 +31,9 @@
   let freiOffen = $state(false)
   let frei = $state({ bez: '', kat: 'a', bew: 'ungenügend' as Bewertung, beschr: '' })
 
+  // Nachfrage bei Buttons mit "eingabe" (Minuten bei Verspätung, Text bei Vorfällen)
+  let nachfrage = $state<{ btn: Schnellbutton; minuten: string; text: string } | null>(null)
+
   // Löschen in der Tagesliste (zweistufig)
   let loeschKandidat = $state<string | null>(null)
 
@@ -86,8 +89,10 @@
     const k = klasse
     const datum = heute()
     const stems = [...auswahl].sort()
+    // Kategorie ausgeschrieben speichern (Buchstabe → Text gemäss Schnellbuttons.yaml)
+    const katText = config?.kategorien[b.kat] ?? b.kat
     try {
-      const r = await speichern(k, { zeit: jetzt(), sus: stems, kat: b.kat, bew: b.bew, bez: b.bez, beschr: b.beschr, klus: 'offen' }, datum)
+      const r = await speichern(k, { zeit: jetzt(), sus: stems, kat: katText, bew: b.bew, bez: b.bez, beschr: b.beschr, klus: 'offen' }, datum)
       auswahl = new Set()
       const wer = stems.length === 1 ? nameVon(stems[0]) : `${stems.length} SuS`
       if (r.ok) {
@@ -108,7 +113,17 @@
   }
 
   function schnell(btn: Schnellbutton) {
+    if (btn.eingabe) { nachfrage = { btn, minuten: '', text: '' }; return }
     erfassen({ bez: btn.bez, kat: btn.kat, bew: btn.bew })
+  }
+
+  async function nachfrageSpeichern(minuten?: number) {
+    if (!nachfrage) return
+    const { btn, text } = nachfrage
+    const m = minuten ?? (nachfrage.minuten ? Number(nachfrage.minuten) : 0)
+    nachfrage = null
+    const bez = btn.eingabe === 'minuten' && m > 0 ? `${btn.bez} (${m} Min.)` : btn.bez
+    await erfassen({ bez, kat: btn.kat, bew: btn.bew, beschr: btn.eingabe === 'text' ? text : undefined })
   }
 
   function freiOeffnen() {
@@ -192,7 +207,8 @@
           {#each tagesListe as b (b.zeile)}
             <li class:positiv={b.bew === 'sehr gut'}>
               <span class="zeit">{b.zeit}</span>
-              <span class="text"><strong>{b.bez}</strong> <span class="kat">{b.kat}</span><br />
+              <span class="text"><strong>{b.bez}</strong><br />
+                <span class="kat">{b.kat}</span><br />
                 <span class="namen">{b.sus.map(nameVon).join(', ')}</span>
                 {#if b.beschr}<br /><em>{b.beschr}</em>{/if}
               </span>
@@ -234,7 +250,7 @@
           </label>
           <label>Verhalten
             <select bind:value={frei.kat}>
-              {#each Object.entries(config.kategorien) as [k, t]}<option value={k}>{k} – {t}</option>{/each}
+              {#each Object.entries(config.kategorien) as [k, t]}<option value={k}>{t}</option>{/each}
             </select>
           </label>
           <div class="bew">
@@ -246,6 +262,34 @@
           </label>
           <div class="dialog-knoepfe">
             <button type="button" onclick={() => (freiOffen = false)}>Abbrechen</button>
+            <button type="submit" class="primary">Speichern</button>
+          </div>
+        </form>
+      </div>
+    {/if}
+
+    {#if nachfrage}
+      <div class="dialog-hg" role="presentation" onclick={(e) => e.target === e.currentTarget && (nachfrage = null)}>
+        <form class="dialog" onsubmit={(e) => { e.preventDefault(); nachfrageSpeichern() }}>
+          <h2>{nachfrage.btn.bez} – {auswahl.size === 1 ? nameVon([...auswahl][0]) : `${auswahl.size} SuS`}</h2>
+          {#if nachfrage.btn.eingabe === 'minuten'}
+            <div class="chips">
+              <button type="button" onclick={() => nachfrageSpeichern(0)}>ohne</button>
+              {#each [5, 10, 15, 20, 30] as m}
+                <button type="button" onclick={() => nachfrageSpeichern(m)}>{m} Min.</button>
+              {/each}
+            </div>
+            <label>Andere Anzahl Minuten
+              <input type="number" inputmode="numeric" min="1" max="300" bind:value={nachfrage.minuten} />
+            </label>
+          {:else}
+            <label>Was ist vorgefallen? (optional)
+              <!-- svelte-ignore a11y_autofocus -->
+              <textarea bind:value={nachfrage.text} rows="4" autofocus></textarea>
+            </label>
+          {/if}
+          <div class="dialog-knoepfe">
+            <button type="button" onclick={() => (nachfrage = null)}>Abbrechen</button>
             <button type="submit" class="primary">Speichern</button>
           </div>
         </form>

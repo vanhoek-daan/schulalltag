@@ -5,7 +5,7 @@ import type { Bewertung } from './schnellbuttons'
 export interface Beobachtung {
   zeit: string        // HH:MM
   sus: string[]       // Dateinamen ohne .md (Wikilink-Ziele)
-  kat: string         // a–h
+  kat: string         // ausgeschriebene Kategorie (Verhalten), z.B. "Beteiligt sich aktiv am Unterricht"
   bew: Bewertung
   bez: string         // Bezeichnung (max. 50 Zeichen, wie KLUS)
   beschr?: string     // detaillierte Beschreibung
@@ -29,7 +29,7 @@ export function zuZeile(b: Beobachtung): string {
   const teile = [
     `[zeit:: ${b.zeit}]`,
     `[sus:: ${b.sus.map((s) => `[[${s}]]`).join(', ')}]`,
-    `[kat:: ${b.kat}]`,
+    `[kat:: ${sauber(b.kat)}]`,
     `[bew:: ${b.bew}]`,
     `[bez:: ${sauber(b.bez).slice(0, 50)}]`,
   ]
