@@ -112,3 +112,6 @@ main.mit-leiste .toast { bottom: 250px; }
 .rl-aktionen { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
 .chips-wrap button.aktiv { background: var(--akzent); color: #fff; border-color: var(--akzent); }
+.gast-titel { font-size: 1.3rem; margin: 4px 0; }
+.gastlink { word-break: break-all; font-size: .75rem; background: var(--kachel); border: 1px solid var(--rand); border-radius: 8px; padding: 8px; max-height: 120px; overflow: auto; }
+.fuss { margin-top: 30px; text-align: center; }

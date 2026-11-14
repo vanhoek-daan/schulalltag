@@ -15,6 +15,7 @@
   import Ruecklauf from './Ruecklauf.svelte'
   import { ladeAbwesende, setzeAbwesend } from './lib/anwesenheit'
   import { seriell } from './lib/seriell'
+  import { ladeFormsConfig, erzeugeGastlink, type FormsConfig } from './lib/gastlink-erzeugen'
 
   let konto = $state<AccountInfo | null>(null)
   let bereit = $state(false)
@@ -28,6 +29,8 @@
   let tagesListe = $state<GespeicherteBeobachtung[]>([])
   let speichert = $state(false)
   let wartend = $state(0)
+  let formsConfig = $state<FormsConfig | null>(null)
+  let gastlink = $state('')
   let gastTest = $state('')   // Gastmodus (Schulkonto): vorerst nur Verbindungstest
   let modus = $state<'beobachten' | 'ruecklauf' | 'zufall' | 'gruppen' | 'anwesenheit'>('beobachten')
 
@@ -183,6 +186,15 @@
     try { await entfernen(klasse, heute(), b.zeile); await ladeHeute() } catch (e) { fehler = String(e) }
   }
 
+  function gastlinkZeigen() {
+    if (!formsConfig || !config) return
+    gastlink = erzeugeGastlink(formsConfig, sus.map((s) => `${s.vorname} ${s.nachname}`), config.buttons.map((b) => ({ label: b.label, bez: b.bez })))
+  }
+
+  async function kopieren(t: string) {
+    try { await navigator.clipboard.writeText(t); zeigeToast('Link kopiert') } catch { zeigeToast('Kopieren nicht möglich – Link markieren und kopieren') }
+  }
+
   async function nachreichen() {
     if (!anzahlWartend()) return
     const n = await warteschlangeSenden()
@@ -199,6 +211,7 @@
       } else if (konto) {
         const [b] = await Promise.all([ladeButtons(), zeigeKlasse(klasse)])
         config = b.config
+        ladeFormsConfig().then((c) => (formsConfig = c))
         if (b.warnung) warnung = b.warnung
         wartend = anzahlWartend()
         await nachreichen()
@@ -376,6 +389,25 @@
             <button type="submit" class="primary">Speichern</button>
           </div>
         </form>
+      </div>
+    {/if}
+
+    {#if modus === 'beobachten' && formsConfig && formsConfig.klasse === klasse.id && !auswahl.size}
+      <div class="fuss"><button class="klein" onclick={gastlinkZeigen}>Link für Kolleg:innen</button></div>
+    {/if}
+
+    {#if gastlink}
+      <div class="dialog-hg" role="presentation" onclick={(e) => e.target === e.currentTarget && (gastlink = '')}>
+        <div class="dialog">
+          <h2>Schnellerfassung für Kolleg:innen ({klasse.id})</h2>
+          <p class="info-inline">Der Link enthält Namen und Schnellbuttons (nur im Teil nach «#», wird nicht an einen Server gesendet). Nur an Lehrpersonen der Klasse weitergeben. Nach Änderungen an Klasse oder Buttons neu verteilen.</p>
+          <div class="gastlink">{gastlink}</div>
+          <div class="dialog-knoepfe">
+            <button onclick={() => window.open(gastlink, '_blank')}>Testen</button>
+            <button class="primary" onclick={() => kopieren(gastlink)}>Kopieren</button>
+            <button onclick={() => (gastlink = '')}>Schliessen</button>
+          </div>
+        </div>
       </div>
     {/if}
 
