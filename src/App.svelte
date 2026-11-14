@@ -9,6 +9,8 @@
     type GespeicherteBeobachtung,
   } from './lib/beobachtungen'
   import { CONFIG, type Klasse } from './config'
+  import Zufall from './Zufall.svelte'
+  import Gruppen from './Gruppen.svelte'
 
   let konto = $state<AccountInfo | null>(null)
   let bereit = $state(false)
@@ -22,6 +24,28 @@
   let tagesListe = $state<GespeicherteBeobachtung[]>([])
   let speichert = $state(false)
   let wartend = $state(0)
+  let modus = $state<'beobachten' | 'zufall' | 'gruppen'>('beobachten')
+
+  // Abwesende (für Zufall/Gruppen), pro Klasse und Tag auf dem Gerät gemerkt
+  let abwesend = $state(new Set<string>())
+  const abwKey = () => `schulalltag.abwesend.${klasse.id}.${heute()}`
+  function ladeAbwesend() {
+    try { abwesend = new Set(JSON.parse(localStorage.getItem(abwKey()) ?? '[]')) } catch { abwesend = new Set() }
+  }
+  function toggleAbwesend(stem: string) {
+    const a = new Set(abwesend)
+    a.has(stem) ? a.delete(stem) : a.add(stem)
+    abwesend = a
+    try {
+      // alte Tage aufräumen
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i)
+        if (key?.startsWith('schulalltag.abwesend.') && !key.endsWith(heute())) localStorage.removeItem(key)
+      }
+      localStorage.setItem(abwKey(), JSON.stringify([...a]))
+    } catch { /* egal */ }
+  }
+  const anwesend = $derived(sus.map((s) => s.stem).filter((s) => !abwesend.has(s)))
 
   // Meldung unten mit optionalem "Rückgängig"
   let toast = $state<{ text: string; rueckgaengig?: () => void } | null>(null)
@@ -59,6 +83,7 @@
     auswahl = new Set()
     fehler = ''
     tagesListe = []
+    ladeAbwesend()
     if (cache.has(k.id)) {
       sus = cache.get(k.id)!
     } else {
@@ -186,6 +211,21 @@
       <button class="klein" onclick={logout} title={konto.username}>Abmelden</button>
     </header>
 
+    <div class="modi">
+      <button class:aktiv={modus === 'beobachten'} onclick={() => (modus = 'beobachten')}>Beobachten</button>
+      <button class:aktiv={modus === 'zufall'} onclick={() => { modus = 'zufall'; auswahl = new Set() }}>Zufall</button>
+      <button class:aktiv={modus === 'gruppen'} onclick={() => { modus = 'gruppen'; auswahl = new Set() }}>Gruppen</button>
+    </div>
+
+    {#if modus === 'zufall'}
+      <Zufall klasseId={klasse.id} {anwesend} {nameVon} />
+    {:else if modus === 'gruppen'}
+      <Gruppen {klasse} {anwesend} alle={sus} {nameVon} />
+    {/if}
+    {#if modus !== 'beobachten' && sus.length}
+      <p class="info">Anwesenheit: antippen, wer fehlt ({abwesend.size} abwesend)</p>
+    {/if}
+
     {#if wartend > 0}
       <button class="hinweis" onclick={nachreichen}>{wartend} Eintrag/Einträge warten auf Netz – jetzt senden</button>
     {/if}
@@ -194,13 +234,15 @@
 
     <div class="raster">
       {#each sus as s (s.stem)}
-        <button class="kachel" class:gewaehlt={auswahl.has(s.stem)} onclick={() => toggle(s.stem)}>
+        <button class="kachel" class:gewaehlt={modus === 'beobachten' && auswahl.has(s.stem)}
+          class:abwesend={modus !== 'beobachten' && abwesend.has(s.stem)}
+          onclick={() => (modus === 'beobachten' ? toggle(s.stem) : toggleAbwesend(s.stem))}>
           {s.anzeige}
         </button>
       {/each}
     </div>
 
-    {#if tagesListe.length}
+    {#if modus === 'beobachten' && tagesListe.length}
       <section class="heute">
         <h2>Heute erfasst ({tagesListe.length})</h2>
         <ul>
@@ -223,7 +265,7 @@
       </section>
     {/if}
 
-    {#if auswahl.size > 0 && config}
+    {#if modus === 'beobachten' && auswahl.size > 0 && config}
       <div class="leiste">
         <div class="leiste-kopf">
           <span>{auswahl.size === 1 ? nameVon([...auswahl][0]) : `${auswahl.size} SuS`}</span>

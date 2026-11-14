@@ -67,3 +67,28 @@ main.mit-leiste .toast { bottom: 250px; }
 .warnung { color: #7a5a00; font-size: .85rem; }
 .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .chips button { min-height: 52px; font-size: 1.05rem; }
+
+/* --- Modi, Zufall, Gruppen --- */
+.modi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+.modi button.aktiv, .umschalter button.aktiv { background: var(--akzent); color: #fff; border-color: var(--akzent); }
+.kachel.abwesend { opacity: .35; text-decoration: line-through; }
+.zufall { text-align: center; margin: 8px 0 20px; }
+.zufall .gross { font-size: clamp(2.5rem, 12vw, 6rem); font-weight: 700; min-height: 1.3em; margin: 10px 0; }
+.zufall .gross.animiert { color: var(--muted); }
+.zufall .los { min-width: 200px; }
+.optionen { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; margin-top: 12px; color: var(--muted); font-size: .9rem; }
+.gruppen { margin-bottom: 16px; }
+.steuerung { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; }
+.umschalter { display: flex; gap: 4px; }
+.stepper { display: flex; align-items: center; gap: 6px; }
+.stepper span { min-width: 2ch; text-align: center; font-size: 1.3rem; font-weight: 600; }
+.stepper button { width: 44px; height: 44px; padding: 0; font-size: 1.3rem; }
+.ergebnis { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin: 12px 0; }
+.gruppe { background: var(--kachel); border: 1px solid var(--rand); border-radius: 10px; padding: 10px 12px; font-size: 1.15rem; }
+.gruppe h3 { margin: 0 0 6px; font-size: .9rem; color: var(--akzent); }
+.ausschluss { margin-top: 10px; }
+.ausschluss summary { cursor: pointer; color: var(--muted); }
+.ausschluss ul { list-style: none; padding: 0; }
+.ausschluss li { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+.neu { display: flex; gap: 6px; flex-wrap: wrap; }
+.neu select { font: inherit; color: var(--fg); background: var(--kachel); border: 1px solid var(--rand); border-radius: 8px; padding: 8px; flex: 1; min-width: 120px; }
