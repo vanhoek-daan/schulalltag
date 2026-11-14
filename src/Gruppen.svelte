@@ -54,7 +54,7 @@
   <p class="info">{anwesend.length} anwesend → {anzahl} Gruppen</p>
 
   {#if verstoesse > 0}
-    <p class="warnung">Nicht alle Ausschlüsse liessen sich erfüllen ({verstoesse}). Nochmals mischen oder Gruppen vergrössern.</p>
+    <p class="warnung">Gruppen konnten nicht optimal verteilt werden – bitte nochmals mischen.</p>
   {/if}
 
   {#if gruppen.length}
@@ -69,7 +69,8 @@
   {/if}
 
   <details bind:open={ausschlussOffen} class="ausschluss">
-    <summary>Nie zusammen ({paare.length})</summary>
+    <summary>Einstellungen</summary>
+    <p class="info">Nie zusammen</p>
     <ul>
       {#each paare as p}
         <li>{nameVon(p[0])} + {nameVon(p[1])}
