@@ -92,3 +92,23 @@ main.mit-leiste .toast { bottom: 250px; }
 .ausschluss li { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
 .neu { display: flex; gap: 6px; flex-wrap: wrap; }
 .neu select { font: inherit; color: var(--fg); background: var(--kachel); border: 1px solid var(--rand); border-radius: 8px; padding: 8px; flex: 1; min-width: 120px; }
+
+/* --- Anwesenheit, Rücklauf --- */
+.kopf-rechts { display: flex; gap: 6px; }
+.klein.aktiv-chip { background: var(--akzent); color: #fff; border-color: var(--akzent); }
+.modi { grid-template-columns: repeat(4, 1fr); }
+.modi button { padding: 10px 4px; font-size: .95rem; }
+.kachel.abwesend-leicht { opacity: .45; }
+.kachel.abgegeben { background: #dff3e4; border-color: #1b7f3b; color: #14532d; }
+@media (prefers-color-scheme: dark) { .kachel.abgegeben { background: #173d24; color: #bfe8cb; } }
+.rl-kopf { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.klein-label { color: var(--muted); font-size: .85rem; }
+.rl-liste { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.rl-eintrag { width: 100%; display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; text-align: left; }
+.rl-eintrag.erledigt { opacity: .55; }
+.rl-eintrag .zahl { font-weight: 600; color: var(--akzent); }
+.rl-detail-kopf { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
+.info-inline { color: var(--muted); font-size: .85rem; margin: 0; }
+.rl-aktionen { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips-wrap button.aktiv { background: var(--akzent); color: #fff; border-color: var(--akzent); }

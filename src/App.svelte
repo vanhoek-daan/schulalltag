@@ -11,6 +11,9 @@
   import { CONFIG, type Klasse } from './config'
   import Zufall from './Zufall.svelte'
   import Gruppen from './Gruppen.svelte'
+  import Ruecklauf from './Ruecklauf.svelte'
+  import { ladeAbwesende, setzeAbwesend } from './lib/anwesenheit'
+  import { seriell } from './lib/seriell'
 
   let konto = $state<AccountInfo | null>(null)
   let bereit = $state(false)
@@ -24,26 +27,26 @@
   let tagesListe = $state<GespeicherteBeobachtung[]>([])
   let speichert = $state(false)
   let wartend = $state(0)
-  let modus = $state<'beobachten' | 'zufall' | 'gruppen'>('beobachten')
+  let modus = $state<'beobachten' | 'ruecklauf' | 'zufall' | 'gruppen' | 'anwesenheit'>('beobachten')
 
-  // Abwesende (für Zufall/Gruppen), pro Klasse und Tag auf dem Gerät gemerkt
+  // Abwesende des Tages: im Vault gespeichert (App/Anwesenheit/), gilt für alle Modi und Geräte
   let abwesend = $state(new Set<string>())
-  const abwKey = () => `schulalltag.abwesend.${klasse.id}.${heute()}`
-  function ladeAbwesend() {
-    try { abwesend = new Set(JSON.parse(localStorage.getItem(abwKey()) ?? '[]')) } catch { abwesend = new Set() }
+  async function ladeAbwesend() {
+    const k = klasse
+    try {
+      const a = await ladeAbwesende(k)
+      if (klasse.id === k.id) abwesend = a
+    } catch (e) { fehler = String(e) }
   }
   function toggleAbwesend(stem: string) {
+    const k = klasse
+    const ab = !abwesend.has(stem)
     const a = new Set(abwesend)
-    a.has(stem) ? a.delete(stem) : a.add(stem)
-    abwesend = a
-    try {
-      // alte Tage aufräumen
-      for (let i = localStorage.length - 1; i >= 0; i--) {
-        const key = localStorage.key(i)
-        if (key?.startsWith('schulalltag.abwesend.') && !key.endsWith(heute())) localStorage.removeItem(key)
-      }
-      localStorage.setItem(abwKey(), JSON.stringify([...a]))
-    } catch { /* egal */ }
+    ab ? a.add(stem) : a.delete(stem)
+    abwesend = a   // sofort anzeigen
+    seriell(() => setzeAbwesend(k, stem, ab))
+      .then((neu) => { if (klasse.id === k.id) abwesend = neu })
+      .catch((e) => { fehler = String(e); ladeAbwesend() })
   }
   const anwesend = $derived(sus.map((s) => s.stem).filter((s) => !abwesend.has(s)))
 
@@ -83,6 +86,7 @@
     auswahl = new Set()
     fehler = ''
     tagesListe = []
+    abwesend = new Set()
     ladeAbwesend()
     if (cache.has(k.id)) {
       sus = cache.get(k.id)!
@@ -108,12 +112,13 @@
     auswahl = s
   }
 
-  async function erfassen(b: { bez: string; kat: string; bew: Bewertung; beschr?: string }) {
-    if (!auswahl.size || speichert) return
+  /** Beobachtung speichern; stems = explizite SuS (sonst aktuelle Auswahl). Rückgabe: true bei Erfolg */
+  async function erfassen(b: { bez: string; kat: string; bew: Bewertung; beschr?: string }, explizit?: string[]): Promise<boolean> {
+    const stems = [...(explizit ?? auswahl)].sort()
+    if (!stems.length || speichert) return false
     speichert = true
     const k = klasse
     const datum = heute()
-    const stems = [...auswahl].sort()
     // Kategorie ausgeschrieben speichern (Buchstabe → Text gemäss Schnellbuttons.yaml)
     const katText = config?.kategorien[b.kat] ?? b.kat
     try {
@@ -130,8 +135,10 @@
         wartend = anzahlWartend()
         zeigeToast(`Kein Netz – ${b.bez} (${wer}) wird später gespeichert`)
       }
+      return true
     } catch (e) {
       fehler = String(e)
+      return false
     } finally {
       speichert = false
     }
@@ -208,21 +215,31 @@
           <button class:aktiv={k.id === klasse.id} onclick={() => zeigeKlasse(k)}>{k.id}</button>
         {/each}
       </nav>
-      <button class="klein" onclick={logout} title={konto.username}>Abmelden</button>
+      <div class="kopf-rechts">
+        <button class="klein" class:aktiv-chip={modus === 'anwesenheit'} onclick={() => { modus = 'anwesenheit'; auswahl = new Set() }}>
+          Anwesenheit{abwesend.size ? ` (${abwesend.size} fehlen)` : ''}
+        </button>
+        <button class="klein" onclick={logout} title={konto.username}>Abmelden</button>
+      </div>
     </header>
 
     <div class="modi">
       <button class:aktiv={modus === 'beobachten'} onclick={() => (modus = 'beobachten')}>Beobachten</button>
+      <button class:aktiv={modus === 'ruecklauf'} onclick={() => { modus = 'ruecklauf'; auswahl = new Set() }}>Rücklauf</button>
       <button class:aktiv={modus === 'zufall'} onclick={() => { modus = 'zufall'; auswahl = new Set() }}>Zufall</button>
       <button class:aktiv={modus === 'gruppen'} onclick={() => { modus = 'gruppen'; auswahl = new Set() }}>Gruppen</button>
     </div>
 
-    {#if modus === 'zufall'}
+    {#if modus === 'anwesenheit'}
+      <p class="info"><strong>Wer fehlt heute?</strong> Antippen – gilt für Zufall, Gruppen und Rücklauf.</p>
+    {:else if modus === 'ruecklauf' && config}
+      <Ruecklauf {klasse} {sus} {nameVon} {abwesend} buttons={config.buttons} erfasse={erfassen} />
+    {:else if modus === 'zufall'}
       <Zufall klasseId={klasse.id} {anwesend} {nameVon} />
     {:else if modus === 'gruppen'}
       <Gruppen {klasse} {anwesend} alle={sus} {nameVon} />
     {/if}
-    {#if modus !== 'beobachten' && sus.length}
+    {#if (modus === 'zufall' || modus === 'gruppen') && sus.length}
       <p class="info">Anwesenheit: antippen, wer fehlt ({abwesend.size} abwesend)</p>
     {/if}
 
@@ -232,15 +249,18 @@
     {#if warnung}<p class="warnung">{warnung}</p>{/if}
     {#if laedt}<p class="info">Lade Klasse {klasse.id} …</p>{/if}
 
+    {#if modus !== 'ruecklauf'}
     <div class="raster">
       {#each sus as s (s.stem)}
         <button class="kachel" class:gewaehlt={modus === 'beobachten' && auswahl.has(s.stem)}
           class:abwesend={modus !== 'beobachten' && abwesend.has(s.stem)}
+          class:abwesend-leicht={modus === 'beobachten' && abwesend.has(s.stem)}
           onclick={() => (modus === 'beobachten' ? toggle(s.stem) : toggleAbwesend(s.stem))}>
           {s.anzeige}
         </button>
       {/each}
     </div>
+    {/if}
 
     {#if modus === 'beobachten' && tagesListe.length}
       <section class="heute">

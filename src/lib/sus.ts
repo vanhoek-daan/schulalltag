@@ -9,7 +9,7 @@ export interface Sus {
 }
 
 /** Einfacher Frontmatter-Leser: nur "schluessel: wert"-Zeilen */
-function frontmatter(md: string): Record<string, string> {
+export function frontmatter(md: string): Record<string, string> {
   const m = md.match(/^---\r?\n([\s\S]*?)\r?\n---/)
   const out: Record<string, string> = {}
   if (!m) return out
