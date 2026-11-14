@@ -14,6 +14,7 @@ export interface Schnellbutton {
 export interface ButtonConfig {
   kategorien: Record<string, string>
   buttons: Schnellbutton[]
+  erfasser?: string   // Name im Feld «erfasser»
 }
 
 const PFAD = '05 Vorlagen/App/Schnellbuttons.yaml'
@@ -46,7 +47,8 @@ export async function ladeButtons(): Promise<{ config: ButtonConfig; warnung?: s
       .map((b) => ({ ...b, kat: String(b.kat), bew: (b.bew === 'sehr gut' ? 'sehr gut' : 'ungenügend') as Bewertung,
         eingabe: b.eingabe === 'minuten' || b.eingabe === 'text' ? b.eingabe : undefined }))
     if (!buttons.length) throw new Error('keine Buttons definiert')
-    return { config: { kategorien, buttons } }
+    const erfasser = typeof (roh as { erfasser?: unknown }).erfasser === 'string' ? String((roh as { erfasser: string }).erfasser).trim() : undefined
+    return { config: { kategorien, buttons, erfasser } }
   } catch (e) {
     return { config: STANDARD, warnung: `Schnellbuttons.yaml nicht lesbar (${e}) – Standardwerte aktiv` }
   }

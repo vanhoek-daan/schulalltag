@@ -9,6 +9,7 @@ export interface Beobachtung {
   bew: Bewertung
   bez: string         // Bezeichnung (max. 50 Zeichen, wie KLUS)
   beschr?: string     // detaillierte Beschreibung
+  erfasser?: string   // wer erfasst hat, z.B. "D. van Hoek"
   klus: 'offen' | 'übertragen'
 }
 
@@ -34,6 +35,7 @@ export function zuZeile(b: Beobachtung): string {
     `[bez:: ${sauber(b.bez).slice(0, 50)}]`,
   ]
   if (b.beschr && sauber(b.beschr)) teile.push(`[beschr:: ${sauber(b.beschr)}]`)
+  if (b.erfasser && sauber(b.erfasser)) teile.push(`[erfasser:: ${sauber(b.erfasser)}]`)
   teile.push(`[klus:: ${b.klus}]`)
   return `- ${teile.join(' ')}`
 }
@@ -55,6 +57,7 @@ export function ausZeile(zeile: string): GespeicherteBeobachtung | null {
     bew: feld('bew') === 'sehr gut' ? 'sehr gut' : 'ungenügend',
     bez: feld('bez'),
     beschr: feld('beschr') || undefined,
+    erfasser: feld('erfasser') || undefined,
     klus: feld('klus') === 'übertragen' ? 'übertragen' : 'offen',
   }
 }

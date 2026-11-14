@@ -65,6 +65,13 @@
   let loeschKandidat = $state<string | null>(null)
 
   const cache = new Map<string, Sus[]>()
+  /** Erfasser: aus Schnellbuttons.yaml, sonst aus dem Microsoft-Konto («Daan van Hoek» → «D. van Hoek») */
+  function erfasserName(): string {
+    if (config?.erfasser) return config.erfasser
+    const teile = (konto?.name ?? '').trim().split(/\s+/).filter(Boolean)
+    return teile.length > 1 ? `${teile[0].charAt(0)}. ${teile.slice(1).join(' ')}` : (teile[0] ?? '')
+  }
+
   const nameVon = (stem: string) => sus.find((s) => s.stem === stem)?.anzeige ?? stem.replace(/_/g, ' ')
 
   function zeigeToast(text: string, rueckgaengig?: () => void) {
@@ -122,7 +129,7 @@
     // Kategorie ausgeschrieben speichern (Buchstabe → Text gemäss Schnellbuttons.yaml)
     const katText = config?.kategorien[b.kat] ?? b.kat
     try {
-      const r = await speichern(k, { zeit: jetzt(), sus: stems, kat: katText, bew: b.bew, bez: b.bez, beschr: b.beschr, klus: 'offen' }, datum)
+      const r = await speichern(k, { zeit: jetzt(), sus: stems, kat: katText, bew: b.bew, bez: b.bez, beschr: b.beschr, erfasser: erfasserName(), klus: 'offen' }, datum)
       auswahl = new Set()
       const wer = stems.length === 1 ? nameVon(stems[0]) : `${stems.length} SuS`
       if (r.ok) {
@@ -273,6 +280,7 @@
                 <span class="kat">{b.kat}</span><br />
                 <span class="namen">{b.sus.map(nameVon).join(', ')}</span>
                 {#if b.beschr}<br /><em>{b.beschr}</em>{/if}
+                {#if b.erfasser}<br /><span class="kat">erfasst von {b.erfasser}</span>{/if}
               </span>
               {#if loeschKandidat === b.zeile}
                 <button class="weg bestaetigen" onclick={() => loeschen(b)}>Löschen?</button>
