@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import type { AccountInfo } from '@azure/msal-browser'
-  import { initAuth, login, logout } from './lib/auth'
+  import { initAuth, login, logout, istBesitzer } from './lib/auth'
+  import { pruefeDrive } from './lib/graph'
   import { ladeKlasse, type Sus } from './lib/sus'
   import { ladeButtons, type ButtonConfig, type Bewertung, type Schnellbutton } from './lib/schnellbuttons'
   import {
@@ -27,6 +28,7 @@
   let tagesListe = $state<GespeicherteBeobachtung[]>([])
   let speichert = $state(false)
   let wartend = $state(0)
+  let gastTest = $state('')   // Gastmodus (Schulkonto): vorerst nur Verbindungstest
   let modus = $state<'beobachten' | 'ruecklauf' | 'zufall' | 'gruppen' | 'anwesenheit'>('beobachten')
 
   // Abwesende des Tages: im Vault gespeichert (App/Anwesenheit/), gilt für alle Modi und Geräte
@@ -191,7 +193,10 @@
   onMount(async () => {
     try {
       konto = await initAuth()
-      if (konto) {
+      if (konto && !istBesitzer(konto)) {
+        try { gastTest = `✓ Anmeldung und OneDrive-Zugriff funktionieren (Laufwerk von ${await pruefeDrive()}).` }
+        catch (e) { gastTest = `✗ Anmeldung ok, aber kein OneDrive-Zugriff: ${e}` }
+      } else if (konto) {
         const [b] = await Promise.all([ladeButtons(), zeigeKlasse(klasse)])
         config = b.config
         if (b.warnung) warnung = b.warnung
@@ -210,6 +215,14 @@
 <main class:mit-leiste={auswahl.size > 0}>
   {#if !bereit}
     <p class="info">Lade …</p>
+  {:else if konto && !istBesitzer(konto)}
+    <div class="login">
+      <h1>Schulalltag – Gastzugang</h1>
+      <p>Angemeldet als {konto.username}</p>
+      <p>{gastTest || 'Prüfe Zugriff …'}</p>
+      <p class="info">Der Gastzugang ist noch im Aufbau.</p>
+      <button onclick={logout}>Abmelden</button>
+    </div>
   {:else if !konto}
     <div class="login">
       <h1>Schulalltag</h1>

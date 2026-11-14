@@ -44,6 +44,12 @@ export async function listFolder(vaultPath: string): Promise<DriveItem[]> {
   return items
 }
 
+/** Test: Zugriff auf den eigenen OneDrive möglich? Liefert Anzeigename des Laufwerk-Besitzers */
+export async function pruefeDrive(): Promise<string> {
+  const d: { owner?: { user?: { displayName?: string } } } = await (await graphFetch(`${GRAPH}/me/drive?$select=owner`)).json()
+  return d.owner?.user?.displayName ?? 'unbekannt'
+}
+
 /** Textdatei aus dem Vault lesen */
 export async function readText(vaultPath: string): Promise<string> {
   return (await graphFetch(`${itemUrl(vaultPath)}:/content`)).text()
