@@ -27,8 +27,9 @@
       const h = location.hash.slice(1)
       if (h) {
         daten = dekodiere(h)
+        // Fragment bewusst in der Adresse lassen: «Zum Home-Bildschirm» (iOS) speichert die aktuelle Adresse,
+        // und Home-Bildschirm-Apps haben unter iOS einen eigenen, leeren Speicher.
         try { localStorage.setItem(KEY, h) } catch { /* egal */ }
-        history.replaceState(null, '', location.pathname)   // Daten nicht in der Adresszeile stehen lassen
       } else {
         const s = localStorage.getItem(KEY)
         if (s) daten = dekodiere(s)
