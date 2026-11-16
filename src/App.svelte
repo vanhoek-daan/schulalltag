@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import type { AccountInfo } from '@azure/msal-browser'
-  import { initAuth, login, logout, istBesitzer } from './lib/auth'
+  import { initAuth, login, logout, istBesitzer, neuAnmelden } from './lib/auth'
   import { pruefeDrive } from './lib/graph'
   import { ladeKlasse, type Sus } from './lib/sus'
   import { ladeButtons, type ButtonConfig, type Bewertung, type Schnellbutton } from './lib/schnellbuttons'
@@ -292,6 +292,7 @@
         <button class="klein" class:aktiv-chip={modus === 'anwesenheit'} onclick={() => { modus = 'anwesenheit'; auswahl = new Set() }}>
           Anwesenheit{abwesend.size ? ` (${abwesend.size} fehlen)` : ''}
         </button>
+        <button class="klein" onclick={neuAnmelden} title="Login erneuern">↻</button>
         <button class="klein" onclick={logout} title={konto.username}>Abmelden</button>
       </div>
     </header>
@@ -479,5 +480,6 @@
 
   {#if fehler}
     <pre class="fehler">{fehler}</pre>
+    <div class="fuss"><button class="primary" onclick={neuAnmelden}>Neu anmelden</button></div>
   {/if}
 </main>
